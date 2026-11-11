@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>记忆力训练 · MEMORY TRAINER</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0e1030;
+    --panel: #1a1d42;
+    --line: #2e3168;
+    --ink: #eceaff;
+    --dim: #9a97c4;
+    --a1: #6c5ce7;
+    --a2: #00d2ff;
+    --good: #2ed573;
+    --bad: #ff4757;
+  }
+  body {
+    min-height: 100vh; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    padding: 24px 14px 44px;
+    background-image:
+      radial-gradient(ellipse at 20% -5%, rgba(108,92,231,.35), transparent 55%),
+      radial-gradient(ellipse at 90% 110%, rgba(0,210,255,.18), transparent 55%);
+  }
+  h1 { text-align: center; font-size: 34px; font-weight: 800; letter-spacing: 4px; }
+  h1 span { background: linear-gradient(90deg, var(--a2), var(--a1)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .subtitle { text-align: center; color: var(--dim); letter-spacing: 6px; font-size: 12px; margin-top: 4px; }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  .tabs { display: flex; gap: 8px; margin-top: 22px; }
+  .tabs button {
+    flex: 1; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--dim);
+    border-radius: 12px; padding: 12px 4px; font-size: 15px; font-weight: 700; font-family: inherit;
+    transition: all .15s ease;
+  }
+  .tabs button.on { background: linear-gradient(90deg, var(--a1), var(--a2)); color: #fff; border-color: transparent; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 18px;
+    padding: 20px; margin-top: 14px; box-shadow: 0 18px 40px rgba(0,0,0,.35);
+  }
+  .hud { display: flex; gap: 10px; margin-bottom: 14px; }
+  .hud .cell { flex: 1; text-align: center; background: rgba(0,0,0,.25); border-radius: 12px; padding: 9px 4px; }
+  .hud .num { font-size: 21px; font-weight: 800; }
+  .hud .cap { font-size: 11px; color: var(--dim); letter-spacing: 2px; margin-top: 2px; }
+  button.act {
+    cursor: pointer; border: none; border-radius: 12px; padding: 12px 20px; font-size: 15px; font-weight: 700;
+    font-family: inherit; background: linear-gradient(90deg, var(--a1), var(--a2)); color: #fff;
+    transition: transform .06s ease, filter .15s ease;
+  }
+  button.act:active { transform: scale(.96); }
+  button.ghost { background: transparent; border: 1px solid var(--line); color: var(--dim); }
+  .center { text-align: center; }
+  .msg { min-height: 24px; text-align: center; font-size: 14px; color: var(--dim); margin: 10px 0; }
+  .msg.good { color: var(--good); } .msg.bad { color: var(--bad); }
+
+  /* 翻牌 */
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .mcard {
+    aspect-ratio: 1; border: none; border-radius: 14px; cursor: pointer; font-size: 34px;
+    background: linear-gradient(145deg, #2b2f63, #232650); color: transparent;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .25s ease, background .25s ease; font-family: inherit;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.05);
+  }
+  .mcard::before { content: "?"; color: rgba(255,255,255,.35); font-size: 26px; font-weight: 800; position: absolute; }
+  .mcard { position: relative; }
+  .mcard.open, .mcard.done { background: #fff; color: initial; transform: rotateY(360deg); }
+  .mcard.open::before, .mcard.done::before { content: ""; }
+  .mcard.done { background: #d9fbe8; box-shadow: inset 0 0 0 2px var(--good); cursor: default; }
+
+  /* 数字记忆 */
+  .bignum {
+    font-size: 52px; font-weight: 900; letter-spacing: 6px; text-align: center; padding: 26px 6px;
+    font-variant-numeric: tabular-nums; word-break: break-all; min-height: 108px;
+  }
+  .barwrap { height: 8px; background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden; margin: 4px 0 14px; }
+  .barwrap > div { height: 100%; width: 100%; background: linear-gradient(90deg, var(--a2), var(--a1)); }
+  input[type=text], input[type=tel] {
+    width: 100%; background: rgba(0,0,0,.3); border: 1px solid var(--line); color: #fff; border-radius: 12px;
+    padding: 13px; font-size: 22px; text-align: center; letter-spacing: 4px; font-family: inherit; outline: none;
+    font-variant-numeric: tabular-nums;
+  }
+  input:focus { border-color: var(--a2); }
+
+  /* 西蒙 */
+  .simon { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 320px; margin: 6px auto; }
+  .pad {
+    aspect-ratio: 1; border: none; cursor: pointer; border-radius: 18px; opacity: .45;
+    transition: opacity .12s ease, transform .12s ease, box-shadow .12s ease; font-family: inherit;
+  }
+  .pad:active { transform: scale(.96); }
+  .pad.lit { opacity: 1; box-shadow: 0 0 34px currentColor; }
+  .pad.p0 { background: #ff4757; color: #ff4757; border-radius: 90px 18px 18px 18px; }
+  .pad.p1 { background: #2ed573; color: #2ed573; border-radius: 18px 90px 18px 18px; }
+  .pad.p2 { background: #ffa502; color: #ffa502; border-radius: 18px 18px 18px 90px; }
+  .pad.p3 { background: #1e90ff; color: #1e90ff; border-radius: 18px 18px 90px 18px; }
+  .footer { text-align: center; margin-top: 20px; font-size: 12px; color: var(--dim); letter-spacing: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>记忆力<span>训练</span></h1>
+  <div class="subtitle">MEMORY TRAINER</div>
+
+  <div class="tabs">
+    <button id="tab0" class="on" onclick="switchMode(0)">🃏 翻牌配对</button>
+    <button id="tab1" onclick="switchMode(1)">🔢 数字记忆</button>
+    <button id="tab2" onclick="switchMode(2)">🎵 序列回放</button>
+  </div>
+
+  <!-- 模式一：翻牌配对 -->
+  <div class="panel" id="mode0">
+    <div class="hud">
+      <div class="cell"><div class="num" id="mvMoves">0</div><div class="cap">翻牌次数</div></div>
+      <div class="cell"><div class="num" id="mvPairs">0/8</div><div class="cap">已配对</div></div>
+      <div class="cell"><div class="num" id="mvTime">0s</div><div class="cap">用时</div></div>
+      <div class="cell"><div class="num" id="mvBest">-</div><div class="cap">最佳（次数）</div></div>
+    </div>
+    <div class="grid" id="mvGrid"></div>
+    <div class="msg" id="mvMsg">点任意一张牌开始，翻出两张相同的图案</div>
+    <div class="center"><button class="act" onclick="initCards()">重新洗牌</button></div>
+  </div>
+
+  <!-- 模式二：数字记忆 -->
+  <div class="panel" id="mode1" style="display:none">
+    <div class="hud">
+      <div class="cell"><div class="num" id="nmLevel">3</div><div class="cap">当前位数</div></div>
+      <div class="cell"><div class="num" id="nmBest">-</div><div class="cap">最佳位数</div></div>
+    </div>
+    <div class="bignum" id="nmShow">准备好了吗？</div>
+    <div class="barwrap"><div id="nmBar"></div></div>
+    <div id="nmInputWrap" style="display:none">
+      <input type="tel" id="nmInput" placeholder="输入你记住的数字" autocomplete="off">
+      <div style="height:10px"></div>
+      <div class="center"><button class="act" onclick="checkNumber()">提交</button></div>
+    </div>
+    <div class="msg" id="nmMsg">数字会显示几秒钟，消失后凭记忆输入</div>
+    <div class="center"><button class="act" id="nmStartBtn" onclick="startNumber()">开始挑战</button></div>
+  </div>
+
+  <!-- 模式三：序列回放 -->
+  <div class="panel" id="mode2" style="display:none">
+    <div class="hud">
+      <div class="cell"><div class="num" id="smRound">0</div><div class="cap">当前长度</div></div>
+      <div class="cell"><div class="num" id="smBest">-</div><div class="cap">最佳成绩</div></div>
+    </div>
+    <div class="simon">
+      <button class="pad p0" onclick="padTap(0)"></button>
+      <button class="pad p1" onclick="padTap(1)"></button>
+      <button class="pad p2" onclick="padTap(2)"></button>
+      <button class="pad p3" onclick="padTap(3)"></button>
+    </div>
+    <div class="msg" id="smMsg">看好亮起的顺序，然后按同样的顺序点一遍</div>
+    <div class="center"><button class="act" onclick="startSimon()">开始</button></div>
+  </div>
+
+  <div class="footer">// 每天练 5 分钟，脑子越用越灵 //</div>
+</div>
+
+<script>
+  function switchMode(i) {
+    for (let j = 0; j < 3; j++) {
+      document.getElementById('mode' + j).style.display = j === i ? 'block' : 'none';
+      document.getElementById('tab' + j).classList.toggle('on', j === i);
+    }
+  }
+  const $ = id => document.getElementById(id);
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  };
+
+  /* ========== 模式一：翻牌配对 ========== */
+  const EMOJIS = ['🍓', '🍋', '🍇', '🍉', '🥝', '🍑', '🍒', '🫐'];
+  let mvOpen = [], mvLock = false, mvMoves = 0, mvPairs = 0, mvStart = null, mvTimer = null;
+
+  function initCards() {
+    const deck = [...EMOJIS, ...EMOJIS];
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    mvOpen = []; mvLock = false; mvMoves = 0; mvPairs = 0; mvStart = null;
+    clearInterval(mvTimer);
+    $('mvMoves').textContent = '0';
+    $('mvPairs').textContent = '0/8';
+    $('mvTime').textContent = '0s';
+    $('mvMsg').textContent = '点任意一张牌开始，翻出两张相同的图案';
+    $('mvMsg').className = 'msg';
+    $('mvBest').textContent = store.get('memBestMoves', null) ?? '-';
+    const grid = $('mvGrid');
+    grid.innerHTML = '';
+    deck.forEach(emo => {
+      const b = document.createElement('button');
+      b.className = 'mcard'; b.textContent = emo; b.dataset.emo = emo;
+      b.addEventListener('click', () => flipCard(b));
+      grid.appendChild(b);
+    });
+  }
+  function flipCard(b) {
+    if (mvLock || b.classList.contains('open') || b.classList.contains('done')) return;
+    if (!mvStart) {
+      mvStart = Date.now();
+      mvTimer = setInterval(() => { $('mvTime').textContent = Math.floor((Date.now() - mvStart) / 1000) + 's'; }, 500);
+    }
+    b.classList.add('open');
+    mvOpen.push(b);
+    if (mvOpen.length === 2) {
+      mvMoves++;
+      $('mvMoves').textContent = mvMoves;
+      const [a, c] = mvOpen;
+      if (a.dataset.emo === c.dataset.emo) {
+        a.classList.add('done'); c.classList.add('done');
+        mvOpen = []; mvPairs++;
+        $('mvPairs').textContent = mvPairs + '/8';
+        if (mvPairs === 8) {
+          clearInterval(mvTimer);
+          const secs = Math.floor((Date.now() - mvStart) / 1000);
+          const best = store.get('memBestMoves', null);
+          if (best === null || mvMoves < best) { store.set('memBestMoves', mvMoves); $('mvBest').textContent = mvMoves; }
+          $('mvMsg').textContent = `🎉 全部配对！用时 ${secs} 秒，共翻 ${mvMoves} 次`;
+          $('mvMsg').className = 'msg good';
+        }
+      } else {
+        mvLock = true;
+        setTimeout(() => { a.classList.remove('open'); c.classList.remove('open'); mvOpen = []; mvLock = false; }, 750);
+      }
+    }
+  }
+
+  /* ========== 模式二：数字记忆 ========== */
+  let nmLevel = 3, nmAnswer = '', nmBusy = false;
+  function startNumber() {
+    if (nmBusy) return;
+    nmLevel = 3;
+    nextNumber();
+  }
+  function nextNumber() {
+    nmBusy = true;
+    $('nmStartBtn').style.display = 'none';
+    $('nmInputWrap').style.display = 'none';
+    $('nmMsg').textContent = '记住这个数字…';
+    $('nmMsg').className = 'msg';
+    $('nmLevel').textContent = nmLevel;
+    nmAnswer = String(Math.floor(Math.random() * 9) + 1);
+    for (let i = 1; i < nmLevel; i++) nmAnswer += Math.floor(Math.random() * 10);
+    $('nmShow').textContent = nmAnswer;
+    const dur = 1100 + nmLevel * 420;
+    const bar = $('nmBar');
+    bar.style.transition = 'none'; bar.style.width = '100%';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      bar.style.transition = `width ${dur}ms linear`; bar.style.width = '0%';
+    }));
+    setTimeout(() => {
+      $('nmShow').textContent = '❓';
+      $('nmInputWrap').style.display = 'block';
+      $('nmInput').value = '';
+      $('nmInput').focus();
+      $('nmMsg').textContent = '数字消失了，输入你记住的';
+      nmBusy = false;
+    }, dur);
+  }
+  function checkNumber() {
+    const v = $('nmInput').value.trim();
+    if (!v) return;
+    if (v === nmAnswer) {
+      const best = store.get('memBestDigits', 0);
+      if (nmLevel > best) { store.set('memBestDigits', nmLevel); $('nmBest').textContent = nmLevel; }
+      $('nmMsg').textContent = `✅ 答对了！进入 ${nmLevel + 1} 位数`;
+      $('nmMsg').className = 'msg good';
+      nmLevel++;
+      nmBusy = true;
+      setTimeout(nextNumber, 900);
+    } else {
+      $('nmShow').textContent = nmAnswer;
+      $('nmMsg').textContent = `❌ 记错了，正确答案是 ${nmAnswer}，你这次记住了 ${nmLevel} 位`;
+      $('nmMsg').className = 'msg bad';
+      $('nmInputWrap').style.display = 'none';
+      $('nmStartBtn').style.display = 'inline-block';
+      $('nmStartBtn').textContent = '再来一次';
+    }
+  }
+  $('nmInput').addEventListener('keydown', e => { if (e.key === 'Enter') checkNumber(); });
+
+  /* ========== 模式三：序列回放（西蒙） ========== */
+  const FREQS = [329.63, 261.63, 392.00, 440.00];
+  let actx = null;
+  function tone(i, dur = 0.28) {
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.frequency.value = FREQS[i]; o.type = 'sine';
+      g.gain.setValueAtTime(0.22, actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+      o.connect(g); g.connect(actx.destination);
+      o.start(); o.stop(actx.currentTime + dur);
+    } catch {}
+  }
+  let smSeq = [], smIdx = 0, smAccept = false, smPlaying = false;
+  function litPad(i, ms = 420) {
+    const pad = document.querySelector('.pad.p' + i);
+    pad.classList.add('lit'); tone(i);
+    setTimeout(() => pad.classList.remove('lit'), ms);
+  }
+  function startSimon() {
+    if (smPlaying) return;
+    smSeq = []; $('smBest').textContent = store.get('memBestSimon', null) ?? '-';
+    nextSimonRound();
+  }
+  function nextSimonRound() {
+    smSeq.push(Math.floor(Math.random() * 4));
+    smIdx = 0; smAccept = false; smPlaying = true;
+    $('smRound').textContent = smSeq.length;
+    $('smMsg').textContent = '看好顺序…';
+    $('smMsg').className = 'msg';
+    smSeq.forEach((p, i) => setTimeout(() => litPad(p), 650 * (i + 1)));
+    setTimeout(() => { smAccept = true; smPlaying = false; $('smMsg').textContent = '轮到你了，按顺序点'; }, 650 * smSeq.length + 500);
+  }
+  function padTap(i) {
+    if (!smAccept) return;
+    litPad(i, 300);
+    if (i === smSeq[smIdx]) {
+      smIdx++;
+      if (smIdx === smSeq.length) {
+        smAccept = false;
+        $('smMsg').textContent = `✅ 全对！下一轮长度 ${smSeq.length + 1}`;
+        $('smMsg').className = 'msg good';
+        setTimeout(nextSimonRound, 1000);
+      }
+    } else {
+      smAccept = false;
+      const scoreNow = smSeq.length - 1;
+      const best = store.get('memBestSimon', 0);
+      if (scoreNow > best) { store.set('memBestSimon', scoreNow); $('smBest').textContent = scoreNow; }
+      $('smMsg').textContent = `❌ 点错了，本次成绩：记住 ${scoreNow} 步。点「开始」再来`;
+      $('smMsg').className = 'msg bad';
+      smSeq = [];
+    }
+  }
+
+  /* 初始化 */
+  initCards();
+  $('nmBest').textContent = store.get('memBestDigits', null) ?? '-';
+  $('smBest').textContent = store.get('memBestSimon', null) ?? '-';
+</script>
+</body>
+</html>
